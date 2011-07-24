@@ -199,7 +199,7 @@ parseOptions = ->
   o.compile     or=  !!o.output
   o.run         = not (o.compile or o.print or o.lint)
   o.print       = !!  (o.print or (o.eval or o.stdio and o.compile))
-  o.hook        = "asdf" if o.hook
+  o.hook        = "__HOOK__" if o.hook
   console.log o.hook if o?.hook?
   sources       = o.arguments
 

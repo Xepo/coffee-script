@@ -204,6 +204,8 @@ exports.Block = class Block extends Base
   compile: (o = {}, level) ->
     if o.scope then super o, level else @compileRoot o
 
+  generateHook: (o, code, bStatement) ->
+        code = if not bStatement then "(#{o.hook}('beforeexpression'),#{o.hook}('expression', (#{code})))" else "#{o.hook}('beforestatement');#{code}"
   # Compile all expressions within the **Block** body. If we need to
   # return the result, and it's an expression, simply return it. If it's a
   # statement, ask the statement to do so.
@@ -217,11 +219,11 @@ exports.Block = class Block extends Base
       if top
         node.front = true
         code = node.compile o
-        code = if o?.hook? and not node.isStatement o then o.hook + "(" + code + ")" else code
+        code = @generateHook o, code, node.isStatement o if o?.hook?
         codes.push if node.isStatement o then code else @tab + code + ';'
       else
         code = node.compile o, LEVEL_LIST
-        code = if o?.hook? not node.isStatement o then o.hook + "(" + code + ")" else code
+        code = @generateHook o, code, node.isStatement o if o?.hook?
         codes.push code
     return codes.join '\n' if top
     code = codes.join(', ') or 'void 0'
