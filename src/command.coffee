@@ -42,6 +42,7 @@ SWITCHES = [
   [      '--nodejs [ARGS]',   'pass options through to the "node" binary']
   ['-v', '--version',         'display CoffeeScript version']
   ['-h', '--help',            'display this help message']
+  [      '--hook',            'Add hook around every expression']
 ]
 
 # Top-level objects shared by all the functions.
@@ -198,10 +199,12 @@ parseOptions = ->
   o.compile     or=  !!o.output
   o.run         = not (o.compile or o.print or o.lint)
   o.print       = !!  (o.print or (o.eval or o.stdio and o.compile))
+  o.hook        = "asdf" if o.hook
+  console.log o.hook if o?.hook?
   sources       = o.arguments
 
 # The compile-time options to pass to the CoffeeScript compiler.
-compileOptions = (filename) -> {filename, bare: opts.bare}
+compileOptions = (filename) -> {filename, bare: opts.bare, hook: opts.hook}
 
 # Start up a new Node.js instance with the arguments in `--nodejs` passed to
 # the `node` binary, preserving the other options.

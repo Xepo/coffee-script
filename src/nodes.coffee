@@ -217,9 +217,12 @@ exports.Block = class Block extends Base
       if top
         node.front = true
         code = node.compile o
+        code = if o?.hook? and not node.isStatement o then o.hook + "(" + code + ")" else code
         codes.push if node.isStatement o then code else @tab + code + ';'
       else
-        codes.push node.compile o, LEVEL_LIST
+        code = node.compile o, LEVEL_LIST
+        code = if o?.hook? not node.isStatement o then o.hook + "(" + code + ")" else code
+        codes.push code
     return codes.join '\n' if top
     code = codes.join(', ') or 'void 0'
     if codes.length > 1 and o.level >= LEVEL_LIST then "(#{code})" else code
