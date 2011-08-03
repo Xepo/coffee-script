@@ -18,6 +18,7 @@ NEGATE  = -> @negated = not @negated; this
 
 #### Base
 
+printLine = (line) -> process.stdout.write line + '\n'
 # The **Base** is the abstract base class for all nodes in the syntax tree.
 # Each subclass implements the `compileNode` method, which performs the
 # code generation for that node. To compile a node to JavaScript,
@@ -40,10 +41,13 @@ exports.Base = class Base
     o.level  = lvl if lvl
     node     = @unfoldSoak(o) or this
     node.tab = o.indent
+    if @mycomment
+            printLine "Got comment #{@mycomment}"
+    code = if @mycomment then '/*' + multident(@mycomment, @tab) + '*/' else ''
     if o.level is LEVEL_TOP or not node.isStatement(o)
-      node.compileNode o
+      code + node.compileNode o
     else
-      node.compileClosure o
+      code + node.compileClosure o
 
   # Statements converted into expressions via closure-wrapping share a scope
   # object with their parent closure, to preserve the expected lexical scope.
@@ -1736,6 +1740,19 @@ unfoldSoak = (o, parent, name) ->
   ifn.body = new Value parent
   ifn
 
+exports.surround = (dollars, lineno, result) ->
+        #return result
+        #return result?
+        return result if not result?
+        result.lineno = lineno
+        result.mycomment ?= ''
+        return result if not dollars?
+        for d in dollars
+          printLine "d:#{d}:#{d.comment?}"
+          if d.comment?
+            printLine "Found comment #{d.comment}"
+            result.mycomment += d.comment
+        result
 # Constants
 # ---------
 

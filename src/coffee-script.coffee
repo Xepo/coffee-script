@@ -101,7 +101,9 @@ lexer = new Lexer
 # directly as a "Jison lexer".
 parser.lexer =
   lex: ->
-    [tag, @yytext, @yylineno] = @tokens[@pos++] or ['']
+    [tag, @yytext, @yylineno] = @tokens[@pos] or ['']
+    tag.comment = @tokens?[@pos]?.comment ? ''
+    @pos++
     tag
   setInput: (@tokens) ->
     @pos = 0
