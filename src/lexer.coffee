@@ -18,7 +18,6 @@
 # The Lexer class reads a stream of CoffeeScript and divvies it up into tagged
 # tokens. Some potential ambiguity in the grammar has been avoided by
 # pushing some extra smarts into the Lexer.
-printLine = (line) -> process.stdout.write line + '\n'
 exports.Lexer = class Lexer
 
   # **tokenize** is the Lexer's main method. Scan by attempting to match tokens
@@ -61,7 +60,6 @@ exports.Lexer = class Lexer
            @literalToken()
 
     @closeIndentation()
-    #printLine @tokens
     return @tokens if opts.rewrite is off
     (new Rewriter).rewrite @tokens
 
@@ -176,6 +174,7 @@ exports.Lexer = class Lexer
     if here
       @token 'HERECOMMENT', @sanitizeHeredoc here,
         herecomment: true, indent: Array(@indent + 1).join(' ')
+      @token 'TERMINATOR', '\n'
     @line += count comment, '\n'
     comment.length
 

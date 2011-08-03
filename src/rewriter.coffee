@@ -7,7 +7,6 @@
 
 # The **Rewriter** class is used by the [Lexer](lexer.html), directly against
 # its internal array of tokens.
-printLine = (line) -> process.stdout.write line + '\n'
 class exports.Rewriter
 
   # Helpful snippet for debugging:
@@ -19,7 +18,6 @@ class exports.Rewriter
   # like this. The order of these passes matters -- indentation must be
   # corrected before implicit parentheses can be wrapped around blocks of code.
   rewrite: (@tokens) ->
-    @processComments()
     @removeLeadingNewlines()
     @removeMidExpressionNewlines()
     @closeOpenCalls()
@@ -30,7 +28,6 @@ class exports.Rewriter
     @addImplicitParentheses()
     @ensureBalance BALANCED_PAIRS
     @rewriteClosingParens()
-    #printLine @tokens
     @tokens
 
   # Rewrite the token stream, looking one token ahead and behind.
@@ -57,17 +54,6 @@ class exports.Rewriter
       i += 1
     i - 1
 
-  processComments: () ->
-    @scanTokens (token, i, tokens) ->
-         return 1 unless token[0] is 'HERECOMMENT'
-         printLine "Whoa!HERECOMMENT:#{token[1]}"
-         @tokens[i+1].comment ?= ''
-         @tokens[i+1].comment += (token.comment ? '') + token[1]
-         @tokens.splice i, 1
-         printLine "Spliced #{i}:#{@tokens[i]}"
-         0
-
-
   # Leading newlines would introduce an ambiguity in the grammar, so we
   # dispatch them here.
   removeLeadingNewlines: ->
@@ -78,9 +64,8 @@ class exports.Rewriter
   # this, remove their trailing newlines.
   removeMidExpressionNewlines: ->
     @scanTokens (token, i, tokens) ->
-      return 1 unless token[0] is 'TERMINATOR' and (@tag(i + 1) in EXPRESSION_CLOSE or (@tag(i+1) is 'HERECOMMENT' and @tag(i+2) is 'TERMINATOR' and @tag(i+3) in EXPRESSION_CLOSE))
+      return 1 unless token[0] is 'TERMINATOR' and @tag(i + 1) in EXPRESSION_CLOSE
       tokens.splice i, 1
-      #printLine "#{token}: #{tokens}"
       0
 
   # The lexer has tagged the opening parenthesis of a method call. Match it with
@@ -186,15 +171,10 @@ class exports.Rewriter
   addImplicitIndentation: ->
     @scanTokens (token, i, tokens) ->
       [tag] = token
-      lastTag = @tag(i-1)
-      for j in [1...50]
-          if @tag(i-j) isnt 'TERMINATOR' and @tag(i-j) isnt 'HERECOMMENT'
-              lastTag = @tag(i-j)
-              break
       if tag is 'TERMINATOR' and @tag(i + 1) is 'THEN'
         tokens.splice i, 1
         return 0
-      if tag is 'ELSE' and lastTag isnt 'OUTDENT'
+      if tag is 'ELSE' and @tag(i - 1) isnt 'OUTDENT'
         tokens.splice i, 0, @indentation(token)...
         return 2
       if tag is 'CATCH' and @tag(i + 2) in ['OUTDENT', 'TERMINATOR', 'FINALLY']
@@ -321,7 +301,7 @@ for [left, rite] in BALANCED_PAIRS
   EXPRESSION_END  .push INVERSES[left] = rite
 
 # Tokens that indicate the close of a clause of an expression.
-EXPRESSION_CLOSE = ['CATCH', 'WHEN', 'ELSE',  'FINALLY'].concat EXPRESSION_END
+EXPRESSION_CLOSE = ['CATCH', 'WHEN', 'ELSE', 'FINALLY'].concat EXPRESSION_END
 
 # Tokens that, if followed by an `IMPLICIT_CALL`, indicate a function invocation.
 IMPLICIT_FUNC    = ['IDENTIFIER', 'SUPER', ')', 'CALL_END', ']', 'INDEX_END', '@', 'THIS']

@@ -24,7 +24,6 @@
 # action immediately returns a value, we can optimize by removing the function
 # wrapper and just returning the value directly.
 unwrap = /^function\s*\(\)\s*\{\s*return\s*([\s\S]*);\s*\}/
-printLine = (line) -> process.stdout.write line + '\n'
 
 # Our handy DSL for Jison grammar generation, thanks to
 # [Tim Caswell](http://github.com/creationix). For every rule in the grammar,
@@ -33,16 +32,11 @@ printLine = (line) -> process.stdout.write line + '\n'
 # previous nonterminal.
 o = (patternString, action, options) ->
   patternString = patternString.replace /\s{2,}/g, ' '
-  params = for param,i in patternString.split ' '
-    "$#{i+1}"
-  params = '[' + params.join(',') + ']'
-  return [patternString, "$$ = yy.surround(#{params}, yylineno, $1);", options] unless action
-  origaction = "#{action}"
+  return [patternString, '$$ = $1;', options] unless action
   action = if match = unwrap.exec action then match[1] else "(#{action}())"
   action = action.replace /\bnew /g, '$&yy.'
   action = action.replace /\b(?:Block\.wrap|extend)\b/g, 'yy.$&'
-  printLine "orig:#{origaction} => newaction:#{action}"
-  [patternString, "$$ = yy.surround(#{params}, yylineno, #{action});", options]
+  [patternString, "$$ = #{action};", options]
 
 # Grammatical Rules
 # -----------------
