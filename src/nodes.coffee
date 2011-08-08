@@ -53,6 +53,12 @@ exports.Base = class Base
     o.sharedScope = yes
     Closure.wrap(this).compileNode o
 
+  generateHook: (o, code, node, justexpression=false) ->
+        code = if not node.isStatement o
+          "(#{o.hook}('beforeexpression', #{node.lineno}),#{o.hook}('expression', #{node.lineno}, (#{code})))"
+        else
+          "#{o.hook}('beforestatement', #{node.lineno});#{code}"
+
   # If the code generation wishes to use the result of a complex expression
   # in multiple places, ensure that the expression is only ever evaluated once,
   # by assigning it to a temporary variable. Pass a level to precompile.
@@ -204,11 +210,6 @@ exports.Block = class Block extends Base
   compile: (o = {}, level) ->
     if o.scope then super o, level else @compileRoot o
 
-  generateHook: (o, code, node) ->
-        code = if not node.isStatement o
-          "(#{o.hook}('beforeexpression', #{node.lineno}),#{o.hook}('expression', #{node.lineno}, (#{code})))"
-        else
-          "#{o.hook}('beforestatement', #{node.lineno});#{code}"
   # Compile all expressions within the **Block** body. If we need to
   # return the result, and it's an expression, simply return it. If it's a
   # statement, ask the statement to do so.
@@ -222,11 +223,11 @@ exports.Block = class Block extends Base
       if top
         node.front = true
         code = node.compile o
-        code = @generateHook o, code, node if o?.hook?
+        code = @generateHook o, code, node if o?.hook? and not (1 == code.search o.hook)
         codes.push if node.isStatement o then code else @tab + code + ';'
       else
         code = node.compile o, LEVEL_LIST
-        code = @generateHook o, code, node.isStatement o if o?.hook?
+        code = @generateHook o, code, node if o?.hook?
         codes.push code
     return codes.join '\n' if top
     code = codes.join(', ') or 'void 0'
@@ -938,6 +939,7 @@ exports.Assign = class Assign extends Base
     val = @value.compile o, LEVEL_LIST
     return "#{name}: #{val}" if @context is 'object'
     val = name + " #{ @context or '=' } " + val
+    val = @generateHook o, val, this if o.hook? and not @context
     if o.level <= LEVEL_LIST then val else "(#{val})"
 
   # Brief implementation of recursive pattern matching, when assigning array or
